@@ -1,9 +1,18 @@
+from fastapi import FastAPI
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import time
 
-def scrape_nofrills(product):
+app = FastAPI()
+
+@app.get('/')
+async def root():
+    return {'example': 'hello'}
+
+@app.get('/getprices/{product}')
+async def get_prices(product : str):
     url = f"https://www.nofrills.ca/search?search-bar={product}"
     driver = webdriver.Chrome()
     driver.get(url)
@@ -13,6 +22,7 @@ def scrape_nofrills(product):
     driver.implicitly_wait(20)
 
     products = driver.find_elements(By.CLASS_NAME, "product-tracking")
+    arr = []
     for product in products:
         products_html = product.get_attribute("innerHTML")
         soup = BeautifulSoup(products_html, 'html.parser')
@@ -28,11 +38,11 @@ def scrape_nofrills(product):
                 product_name_element = tile.find('span', class_='product-name__item--name')
                 if product_name_element:
                     product_name = product_name_element.get_text(strip=True)
-                    print(f"Product: {product_name}")
-                    print(f"Price: {price}")
-                    print()
-    time.sleep(30)
+                    # print(f"Product: {product_name}")
+                    arr.append(product_name)
+                    # print(f"Price: {price}")
+                    # print()
+    # time.sleep(20)
 
     driver.quit()
-
-scrape_nofrills("Drumsticks")
+    return {'products': arr}
