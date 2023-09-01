@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -6,6 +7,16 @@ from bs4 import BeautifulSoup
 import time
 
 app = FastAPI()
+
+# Configure CORS
+origins = ["http://localhost:4200"]  # Update this with your Angular app's URL
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get('/')
 async def root():
@@ -22,7 +33,7 @@ async def get_prices(product : str):
     driver.implicitly_wait(20)
 
     products = driver.find_elements(By.CLASS_NAME, "product-tracking")
-    arr = []
+    dic = {}
     for product in products:
         products_html = product.get_attribute("innerHTML")
         soup = BeautifulSoup(products_html, 'html.parser')
@@ -38,11 +49,17 @@ async def get_prices(product : str):
                 product_name_element = tile.find('span', class_='product-name__item--name')
                 if product_name_element:
                     product_name = product_name_element.get_text(strip=True)
+                    dic[product_name] = price
                     # print(f"Product: {product_name}")
-                    arr.append(product_name)
                     # print(f"Price: {price}")
                     # print()
     # time.sleep(20)
 
     driver.quit()
-    return {'products': arr}
+    return dic
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+
+# uvicorn main:app --reload
