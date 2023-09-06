@@ -1,10 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import time
+
+class Product(BaseModel):
+    id: str
+    name: str
+    price: str
+    watchPrice: str 
 
 app = FastAPI()
 
@@ -57,6 +64,12 @@ async def get_prices(product : str):
 
     driver.quit()
     return dic
+
+@app.post('/scrapewatchlist')
+async def scrape_watchlist(product: Product):
+    products = await get_prices(product.name)
+    print("CURRENT PRICE", products[product.name])
+    return product
 
 if __name__ == "__main__":
     import uvicorn
