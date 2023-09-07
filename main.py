@@ -5,7 +5,18 @@ from pydantic import BaseModel
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
-import time
+
+import os
+from twilio.rest import Client
+
+from dotenv import load_dotenv
+load_dotenv()
+
+AUTH_TOKEN = os.getenv("AUTH_TOKEN")
+ACCOUNT_SID = os.getenv("ACCOUNT_SID")
+TO_NUMBER = os.getenv("TO_NUMBER")
+FROM_NUMBER = os.getenv("FROM_NUMBER")
+
 
 class Product(BaseModel):
     id: str
@@ -68,8 +79,25 @@ async def get_prices(product : str):
 @app.post('/scrapewatchlist')
 async def scrape_watchlist(product: Product):
     products = await get_prices(product.name)
-    print("CURRENT PRICE", products[product.name])
-    return product
+    print(products)
+    if products[product.name] <= product.watchPrice:
+        send_notification(product.name, products[product.name])
+    return [product.name, products[product.name]]
+
+def send_notification(product, price):
+    # Your Account SID from twilio.com/console
+    account_sid = ACCOUNT_SID
+    # Your Auth Token from twilio.com/console
+    auth_token  = AUTH_TOKEN
+
+    client = Client(account_sid, auth_token)
+
+    message = client.messages.create(
+        to=TO_NUMBER, 
+        from_=FROM_NUMBER,
+        body=f"${product} now has a price of ${price}")
+
+
 
 if __name__ == "__main__":
     import uvicorn
